@@ -2,174 +2,168 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Информационный Центр</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Статус админов</title>
   <style>
     body {
       margin: 0;
-      font-family: 'Arial', sans-serif;
-      background: linear-gradient(to bottom right, #f0bfff, #e6ddff);
+      font-family: "Segoe UI", sans-serif;
+      background: #f2e6ff;
       color: #333;
-      height: 100vh;
-      overflow: auto;
-    }
-
-    .container {
-      padding: 20px;
-      max-width: 600px;
-      margin: auto;
-    }
-
-    h1 {
-      text-align: center;
-      color: #5e3d94;
-      margin-bottom: 20px;
-    }
-
-    .tabs {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-
-    .tab {
-      padding: 12px 25px;
-      margin: 0 10px;
-      cursor: pointer;
-      background: #d1b3ff;
-      border-radius: 20px;
-      border: none;
-      font-size: 18px;
-      transition: 0.3s;
-    }
-
-    .tab.active {
-      background: #b48aff;
-      color: white;
-    }
-
-    .admin-list {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      align-items: center;
+      min-height: 100vh;
     }
-
-    .admin {
-      background: #ffffffaa;
-      border-radius: 12px;
-      padding: 12px 16px;
+    h1 {
+      color: #7a3db8;
+      margin-top: 20px;
+    }
+    .tabs {
+      display: flex;
+      margin: 20px 0;
+    }
+    .tab {
+      padding: 10px 20px;
+      border: 2px solid #7a3db8;
+      border-radius: 5px;
+      margin: 0 5px;
+      cursor: pointer;
+      background-color: #fff;
+      color: #7a3db8;
+    }
+    .tab.active {
+      background-color: #7a3db8;
+      color: #fff;
+    }
+    .counter {
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+    .admin-list {
+      list-style: none;
+      padding: 0;
+      width: 100%;
+      max-width: 400px;
+    }
+    .admin-item {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-left: 6px solid #7a3db8;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 4px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-
-    .admin-name {
-      font-size: 18px;
-    }
-
-    .status-btn {
-      background: #caa7ff;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 8px;
-      cursor: pointer;
+    .status-button {
+      padding: 5px 10px;
       font-size: 14px;
-    }
-
-    .status-btn:hover {
-      background: #b286ff;
+      background-color: #7a3db8;
       color: white;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
     }
-
-    .count {
+    .edit-section {
+      margin-top: 20px;
       text-align: center;
-      font-size: 16px;
-      margin-bottom: 10px;
+    }
+    .edit-section input {
+      padding: 5px;
+      margin-right: 5px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Информационный Центр</h1>
-    <div class="tabs">
-      <button id="onlineTab" class="tab active">Онлайн</button>
-      <button id="offlineTab" class="tab">Отдых</button>
-    </div>
-    <div class="count" id="countDisplay">Загрузка...</div>
-    <div class="admin-list" id="adminList"></div>
+  <h1>Статус админов</h1>
+  <div class="tabs">
+    <div class="tab active" data-tab="online">Онлайн</div>
+    <div class="tab" data-tab="offline">Отдых</div>
+  </div>
+  <div class="counter" id="counter">Загрузка...</div>
+  <ul class="admin-list" id="adminList">Загрузка...</ul>
+
+  <div class="edit-section">
+    <input type="text" id="newName" placeholder="Имя админа">
+    <select id="newStatus">
+      <option value="online">Онлайн</option>
+      <option value="offline">Отдых</option>
+    </select>
+    <button class="status-button" onclick="addAdmin()">Добавить</button>
   </div>
 
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, onSnapshot, updateDoc, doc
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "AIzaSyAQ3IeE-3bjzDRrE5UXBLbk2MWpFVCbq3w",
+      apiKey: "ТВОЙ_API_KEY",
       authDomain: "adm-bot-dbbdd.firebaseapp.com",
       projectId: "adm-bot-dbbdd",
       storageBucket: "adm-bot-dbbdd.appspot.com",
-      messagingSenderId: "705070380910",
-      appId: "1:705070380910:web:80885a4a83630f4801f37f"
+      messagingSenderId: "ТВОЙ_SENDER_ID",
+      appId: "ТВОЙ_APP_ID"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const adminsRef = collection(db, "admins");
 
-    const adminListEl = document.getElementById('adminList');
-    const countDisplay = document.getElementById('countDisplay');
-    const onlineTab = document.getElementById('onlineTab');
-    const offlineTab = document.getElementById('offlineTab');
+    let currentTab = "online";
 
-    let currentTab = 'online';
-
-    function renderAdmins(snapshot) {
-      const admins = [];
-      snapshot.forEach(doc => admins.push({ id: doc.id, ...doc.data() }));
-
-      const filtered = admins.filter(a => a.status === currentTab);
-      adminListEl.innerHTML = '';
-      countDisplay.textContent = ${currentTab === 'online' ? 'Онлайн' : 'Отдых'} (${filtered.length});
-
+    function renderList(admins) {
+      const list = document.getElementById("adminList");
+      const counter = document.getElementById("counter");
+      list.innerHTML = "";
+      const filtered = admins.filter(admin => admin.status === currentTab);
+      counter.textContent = Всего: ${filtered.length};
       filtered.forEach(admin => {
-        const el = document.createElement('div');
-        el.className = 'admin';
-
-        const name = document.createElement('div');
-        name.className = 'admin-name';
-        name.textContent = ${admin.name};
-
-        const button = document.createElement('button');
-        button.className = 'status-btn';
-        button.textContent = admin.status === 'online' ? 'Я отдыхаю ⌛' : 'Я в сети 🗡';
-        button.onclick = async () => {
-          const ref = doc(db, 'admins', admin.id);
-          await updateDoc(ref, {
-            status: admin.status === 'online' ? 'offline' : 'online'
-          });
-        };
-
-        el.appendChild(name);
-        el.appendChild(button);
-        adminListEl.appendChild(el);
+        const li = document.createElement("li");
+        li.className = "admin-item";
+        li.innerHTML = `
+          <span>${admin.name}</span>
+          <button class="status-button" onclick="toggleStatus('${admin.id}', '${admin.status}')">
+            ${admin.status === "online" ? "Отдых" : "Онлайн"}
+          </button>`;
+        list.appendChild(li);
       });
     }
 
-    onSnapshot(collection(db, 'admins'), renderAdmins);
+    window.toggleStatus = async function (id, currentStatus) {
+      const newStatus = currentStatus === "online" ? "offline" : "online";
+      await updateDoc(doc(db, "admins", id), { status: newStatus });
+    }
 
-    onlineTab.onclick = () => {
-      currentTab = 'online';
-      onlineTab.classList.add('active');
-      offlineTab.classList.remove('active');
-      onSnapshot(collection(db, 'admins'), renderAdmins);
-    };
+    window.addAdmin = async function () {
+      const name = document.getElementById("newName").value.trim();
+      const status = document.getElementById("newStatus").value;
+      if (!name) return alert("Введите имя");
+      await addDoc(adminsRef, { name, status });
+      document.getElementById("newName").value = "";
+    }
 
-    offlineTab.onclick = () => {
-      currentTab = 'offline';
-      offlineTab.classList.add('active');
-      onlineTab.classList.remove('active');
-      onSnapshot(collection(db, 'admins'), renderAdmins);
-    };
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        currentTab = tab.dataset.tab;
+        getAdmins();
+      });
+    });
+
+    function getAdmins() {
+      onSnapshot(adminsRef, (snapshot) => {
+        const admins = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderList(admins);
+      });
+    }
+
+    getAdmins();
   </script>
 </body>
 </html>
