@@ -46,16 +46,22 @@
     }
 
     .buttons button {
-      padding: 10px 20px;
-      margin: 10px;
-      border: none;
-      border-radius: 10px;
-      background-color: #d1b3ff;
-      color: #4b0082;
-      font-size: 16px;
-      cursor: pointer;
-    }
+  padding: 16px 32px;
+  margin: 12px;
+  border: none;
+  border-radius: 14px;
+  background-color: #d1b3ff;
+  color: #4b0082;
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(106, 13, 173, 0.2);
+  transition: background-color 0.3s ease;
+}
 
+.buttons button:hover {
+  background-color: #c59aff;
+}
     .buttons button.active {
       background-color: #b288ff;
     }
@@ -128,7 +134,7 @@
       const filtered = admins.filter(admin => admin.online === showOnline);
       filtered.forEach(admin => {
         const li = document.createElement("li");
-        li.textContent = admin.name;
+       li.textContent = ${admin.name} — ${admin.online ? "активен 🗡" : "отдыхает ⌛"};
         adminList.appendChild(li);
       });
 
