@@ -1,0 +1,260 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Информационный Центр</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #2d223a;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    canvas.background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: -1;
+      width: 100%;
+      height: 100%;
+    }
+
+    .header {
+      background-color: #4b2d5e;
+      padding: 1em;
+      text-align: center;
+      font-size: 1.5em;
+      font-weight: bold;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      color: white;
+    }
+
+    .back-button {
+      position: absolute;
+      left: 1em;
+      top: 1em;
+      background-color: #6c4a89;
+      color: white;
+      border: none;
+      padding: 0.5em 1em;
+      border-radius: 5px;
+      cursor: pointer;
+      z-index: 3;
+    }
+
+    .status-panel {
+      display: flex;
+      justify-content: space-around;
+      padding: 1em;
+      background-color: #3d2a4a88;
+      margin: 1em;
+      border-radius: 10px;
+      z-index: 1;
+    }
+
+    .status-box {
+      background-color: #5d3f7188;
+      padding: 1em;
+      border-radius: 10px;
+      flex: 1;
+      margin: 0 0.5em;
+      text-align: center;
+      color: white;
+    }
+
+    .admins {
+      margin: 1em;
+    }
+
+    .admin-card {
+      background-color: #4b2d5ecc;
+      margin-bottom: 1em;
+      padding: 1em;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeInUp 0.8s forwards;
+    }
+
+    .admin-card:nth-child(even) {
+      animation-delay: 0.2s;
+    }
+    .admin-card:nth-child(odd) {
+      animation-delay: 0.4s;
+    }
+
+    @keyframes fadeInUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .admin-info {
+      flex: 1;
+    }
+    .admin-name {
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    .admin-status {
+      font-size: 0.9em;
+      margin: 0.3em 0;
+    }
+    .admin-icons {
+      font-size: 1.2em;
+    }
+    .admin-action {
+      margin-top: 0.5em;
+    }
+    button.active-btn {
+      background-color: #7a55a1;
+      border: none;
+      color: white;
+      padding: 0.4em 0.8em;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<canvas class="background" id="bgCanvas"></canvas>
+
+<div class="header">
+  <button class="back-button" onclick="goBack()">← Назад</button>
+  Информационный Центр
+</div>
+
+<div class="status-panel">
+  <div class="status-box">🗡️ Активны: <span id="active-count">0</span></div>
+  <div class="status-box">⌛️ Отдыхают: <span id="rest-count">0</span></div>
+</div>
+
+<div class="admins" id="admin-list"></div>
+
+<script>
+  const admins = [
+    "#хронос", "#юрэй", "#мара", "#жан", "#лолита",
+    "#sov", "#тики", "#элли", "#креньдель", "#390", "#шед"
+  ];
+
+  function getLastActive(name) {
+    const data = localStorage.getItem("admin_" + name);
+    if (!data) return null;
+    return new Date(parseInt(data));
+  }
+
+  function setLastActive(name) {
+    const now = Date.now();
+    localStorage.setItem("admin_" + name, now.toString());
+    renderAdmins();
+  }
+
+  function timeAgo(date) {
+    const diffMs = Date.now() - date.getTime();
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return "только что";
+    if (minutes === 1) return "1 мин назад";
+    return `${minutes} мин назад`;
+  }
+
+  function renderAdmins() {
+    const list = document.getElementById("admin-list");
+    list.innerHTML = "";
+    let activeCount = 0, restCount = 0;
+
+    admins.forEach(name => {
+      const lastActive = getLastActive(name);
+      const isActive = lastActive && (Date.now() - lastActive.getTime() < 10 * 60000);
+      if (isActive) activeCount++;
+      else restCount++;
+
+      const card = document.createElement("div");
+      card.className = "admin-card";
+      card.innerHTML = `
+        <div class="admin-info">
+          <div class="admin-name">${name}</div>
+          <div class="admin-status">
+            ${isActive ? "🗡️ Активен (" + timeAgo(lastActive) + ")" : "⌛️ Отдых"}<br/>
+          </div>
+          <button class="active-btn admin-action" onclick="setLastActive('${name}')">Я активен</button>
+        </div>
+        <div class="admin-icons">♥ ⛆</div>
+      `;
+      list.appendChild(card);
+    });
+
+    document.getElementById("active-count").innerText = activeCount;
+    document.getElementById("rest-count").innerText = restCount;
+  }
+
+  function goBack() {
+    window.history.back();
+  }
+
+  renderAdmins();
+
+  // Background animation
+  const canvas = document.getElementById("bgCanvas");
+  const ctx = canvas.getContext("2d");
+  let circles = [];
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  function createCircles() {
+    circles = [];
+    for (let i = 0; i < 20; i++) {
+      circles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        r: Math.random() * 60 + 20,
+        dx: (Math.random() - 0.5) * 0.5,
+        dy: (Math.random() - 0.5) * 0.5,
+        alpha: Math.random() * 0.3 + 0.1
+      });
+    }
+  }
+
+  function animate() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let c of circles) {
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, c.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200, 150, 255, ${c.alpha})`;
+      ctx.fill();
+      c.x += c.dx;
+      c.y += c.dy;
+
+      if (c.x - c.r < 0 || c.x + c.r > canvas.width) c.dx *= -1;
+      if (c.y - c.r < 0 || c.y + c.r > canvas.height) c.dy *= -1;
+    }
+    requestAnimationFrame(animate);
+  }
+
+  window.addEventListener('resize', () => {
+    resizeCanvas();
+    createCircles();
+  });
+
+  resizeCanvas();
+  createCircles();
+  animate();
+</script>
+
+</body>
+</html>
