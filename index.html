@@ -1,169 +1,125 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Статус админов</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
+      font-family: sans-serif;
+      background: #f8f0ff;
       margin: 0;
-      font-family: "Segoe UI", sans-serif;
-      background: #f2e6ff;
-      color: #333;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
-    h1 {
-      color: #7a3db8;
-      margin-top: 20px;
-    }
-    .tabs {
-      display: flex;
-      margin: 20px 0;
-    }
-    .tab {
-      padding: 10px 20px;
-      border: 2px solid #7a3db8;
-      border-radius: 5px;
-      margin: 0 5px;
-      cursor: pointer;
-      background-color: #fff;
-      color: #7a3db8;
-    }
-    .tab.active {
-      background-color: #7a3db8;
-      color: #fff;
-    }
-    .counter {
-      margin-bottom: 10px;
-      font-weight: bold;
-    }
-    .admin-list {
-      list-style: none;
-      padding: 0;
-      width: 100%;
-      max-width: 400px;
-    }
-    .admin-item {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-left: 6px solid #7a3db8;
-      margin-bottom: 10px;
-      padding: 10px;
-      border-radius: 4px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .status-button {
-      padding: 5px 10px;
-      font-size: 14px;
-      background-color: #7a3db8;
-      color: white;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-    }
-    .edit-section {
-      margin-top: 20px;
+      padding: 20px;
       text-align: center;
     }
-    .edit-section input {
-      padding: 5px;
-      margin-right: 5px;
+
+    h1 {
+      color: #9933cc;
+    }
+
+    .tabs {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    .tab {
+      background: #d9b3ff;
+      border: none;
+      padding: 10px 20px;
+      margin: 0 5px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: #9933cc;
+      color: white;
+    }
+
+    .admins {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .admin {
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .loading {
+      color: #9933cc;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
   <h1>Статус админов</h1>
   <div class="tabs">
-    <div class="tab active" data-tab="online">Онлайн</div>
-    <div class="tab" data-tab="offline">Отдых</div>
+    <button class="tab active" onclick="showTab('online')">🟢 Онлайн</button>
+    <button class="tab" onclick="showTab('offline')">🛌 Отдых</button>
   </div>
-  <div class="counter" id="counter">Загрузка...</div>
-  <ul class="admin-list" id="adminList">Загрузка...</ul>
 
-  <div class="edit-section">
-    <input type="text" id="newName" placeholder="Имя админа">
-    <select id="newStatus">
-      <option value="online">Онлайн</option>
-      <option value="offline">Отдых</option>
-    </select>
-    <button class="status-button" onclick="addAdmin()">Добавить</button>
-  </div>
+  <div id="counts"></div>
+  <div id="adminList" class="admins"></div>
+  <div id="loading" class="loading">Загрузка...</div>
 
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getFirestore, collection, addDoc, getDocs, onSnapshot, updateDoc, doc
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
     const firebaseConfig = {
-      apiKey: "ТВОЙ_API_KEY",
+      apiKey: "AIzaSyAQ3IeE-3bjzDRrE5UXBLbk2MWpFVCbq3w",
       authDomain: "adm-bot-dbbdd.firebaseapp.com",
       projectId: "adm-bot-dbbdd",
-      storageBucket: "adm-bot-dbbdd.appspot.com",
-      messagingSenderId: "ТВОЙ_SENDER_ID",
-      appId: "ТВОЙ_APP_ID"
+      storageBucket: "adm-bot-dbbdd.firebasestorage.app",
+      messagingSenderId: "705070380910",
+      appId: "1:705070380910:web:80885a4a83630f4801f37f"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
     const adminsRef = collection(db, "admins");
 
-    let currentTab = "online";
+    let currentTab = 'online';
 
-    function renderList(admins) {
-      const list = document.getElementById("adminList");
-      const counter = document.getElementById("counter");
-      list.innerHTML = "";
-      const filtered = admins.filter(admin => admin.status === currentTab);
-      counter.textContent = Всего: ${filtered.length};
+    function showTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+      renderAdmins();
+    }
+
+    let admins = [];
+
+    function renderAdmins() {
+      const container = document.getElementById('adminList');
+      const loading = document.getElementById('loading');
+      const counts = document.getElementById('counts');
+      container.innerHTML = '';
+      loading.style.display = 'none';
+
+      const filtered = admins.filter(a => a.status === currentTab);
       filtered.forEach(admin => {
-        const li = document.createElement("li");
-        li.className = "admin-item";
-        li.innerHTML = `
-          <span>${admin.name}</span>
-          <button class="status-button" onclick="toggleStatus('${admin.id}', '${admin.status}')">
-            ${admin.status === "online" ? "Отдых" : "Онлайн"}
-          </button>`;
-        list.appendChild(li);
+        const div = document.createElement('div');
+        div.className = 'admin';
+        div.textContent = admin.name;
+        container.appendChild(div);
       });
+
+      const countOnline = admins.filter(a => a.status === 'online').length;
+      const countOffline = admins.filter(a => a.status === 'offline').length;
+      counts.textContent = 🟢 Онлайн: ${countOnline} | 🛌 Отдых: ${countOffline};
     }
 
-    window.toggleStatus = async function (id, currentStatus) {
-      const newStatus = currentStatus === "online" ? "offline" : "online";
-      await updateDoc(doc(db, "admins", id), { status: newStatus });
-    }
-
-    window.addAdmin = async function () {
-      const name = document.getElementById("newName").value.trim();
-      const status = document.getElementById("newStatus").value;
-      if (!name) return alert("Введите имя");
-      await addDoc(adminsRef, { name, status });
-      document.getElementById("newName").value = "";
-    }
-
-    document.querySelectorAll(".tab").forEach(tab => {
-      tab.addEventListener("click", () => {
-        document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-        tab.classList.add("active");
-        currentTab = tab.dataset.tab;
-        getAdmins();
-      });
+    onSnapshot(adminsRef, (snapshot) => {
+      admins = snapshot.docs.map(doc => doc.data());
+      renderAdmins();
     });
-
-    function getAdmins() {
-      onSnapshot(adminsRef, (snapshot) => {
-        const admins = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderList(admins);
-      });
-    }
-
-    getAdmins();
   </script>
 </body>
 </html>
